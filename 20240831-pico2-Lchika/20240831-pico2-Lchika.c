@@ -8,15 +8,24 @@ int main()
 {
     stdio_init_all();
 
+    uint32_t ucount = 0;
+
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
     while (true)
     {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
-        gpio_put(LED_PIN, 1);
-        sleep_ms(1000);
-        gpio_put(LED_PIN, 0);
+        printf("Hello, world! %d\n", ucount);
+        if (ucount % 2 == 0)
+        {
+            gpio_put(LED_PIN, 1);
+        }
+        else
+        {
+            gpio_put(LED_PIN, 0);
+        }
+        ucount++;
+
+        sleep_ms(500);
     }
 }
