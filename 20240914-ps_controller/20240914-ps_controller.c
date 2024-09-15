@@ -24,34 +24,51 @@ int main()
     gpio_put(PIN_CS, 1);
 
     uint32_t count = 0;
-
     while (true)
     {
         // LSB Firstがなぜか効かないので、ビットを逆転させておく
-        uint8_t write_buf[10] = {0x80, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        // uint8_t write_buf[10] = {0x01, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        uint8_t read_buf[10] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        uint8_t write_buf[5] = {0x80, 0x42, 0x00, 0x00, 0x00};
+        // uint8_t write_buf[5] = {0x01, 0x42, 0x00, 0x00, 0x00};
+        uint8_t read_buf[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
         printf("try %d\n", count++);
         sleep_us(1);
 
-        asm volatile("nop \n nop \n nop");
-        gpio_put(PIN_CS, 0);
-        asm volatile("nop \n nop \n nop");
+        int try = 0;
 
-        sleep_us(1);
-
-        for (int i = 0; i < 5; i++)
+        for (try = 0; try < 5; try++)
         {
-            spi_write_read_blocking(SPI_PORT, &write_buf[i], &read_buf[i], 1);
-            // 1 バイトごとに時間を少し空ける必要がある
-            sleep_us(10);
+
+            asm volatile("nop \n nop \n nop");
+            gpio_put(PIN_CS, 0);
+            asm volatile("nop \n nop \n nop");
+
+            sleep_us(1);
+
+            for (int i = 0; i < 5; i++)
+            {
+                spi_write_read_blocking(SPI_PORT, &write_buf[i], &read_buf[i], 1);
+                // 1 バイトごとに時間を少し空ける必要がある
+                sleep_us(10);
+            }
+
+            asm volatile("nop \n nop \n nop");
+            gpio_put(PIN_CS, 1);
+            asm volatile("nop \n nop \n nop");
+
+            if (read_buf[1] == 0x82)
+            {
+                sleep_us(1000);
+                break;
+            }
         }
 
-        asm volatile("nop \n nop \n nop");
-        gpio_put(PIN_CS, 1);
-        asm volatile("nop \n nop \n nop");
+        if (try == 5)
+        {
+            printf("failed\n");
+            continue;
+        }
 
-        printf("read: 0x%x%x%x%x%x ", read_buf[0], read_buf[1], read_buf[2], read_buf[3], read_buf[4]);
+        printf("read[%d]: 0x%x%x%x%x%x ", try, read_buf[0], read_buf[1], read_buf[2], read_buf[3], read_buf[4]);
 
         for (int i = 3; i < 5; i++)
         {
