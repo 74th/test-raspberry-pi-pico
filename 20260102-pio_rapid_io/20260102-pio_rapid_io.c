@@ -1,10 +1,15 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
+#include "hardware/gpio.h"
 
 #include "blink.pio.h"
 
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
+    // 強めかつ速いエッジにする（デフォルト4mA/slow→12mA/fast）
+    gpio_set_drive_strength(pin, GPIO_DRIVE_STRENGTH_12MA);
+    gpio_set_slew_rate(pin, GPIO_SLEW_RATE_FAST);
+
     blink_program_init(pio, sm, offset, pin);
     pio_sm_set_enabled(pio, sm, true);
 
@@ -12,7 +17,7 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
 
     // PIO counter program takes 3 more cycles in total than we pass as
     // input (wait for n + 1; mov; jmp)
-    pio->txf[sm] = (125000000 / (2 * freq)) - 3;
+    // pio->txf[sm] = (125000000 / (2 * freq)) - 3;
 }
 
 
@@ -25,7 +30,7 @@ int main()
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &blink_program);
     printf("Loaded program at %d\n", offset);
-    
+
     #ifdef PICO_DEFAULT_LED_PIN
     blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
     #else
